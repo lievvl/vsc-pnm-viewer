@@ -1,21 +1,50 @@
 import * as vscode from 'vscode';
+import generateHTMLCanvas from "./webview";
 
-export class PnmPreviewer implements vscode.CustomReadonlyEditorProvider<PnmDocument> {
-    openCustomDocument(
+export class PnmProvider implements vscode.CustomReadonlyEditorProvider<PnmDocument> {
+
+    private static viewType = "vsc-pnm-viewer.pnm-preview";
+
+    public static register(context: vscode.ExtensionContext): vscode.Disposable {
+        return vscode.window.registerCustomEditorProvider(
+          PnmProvider.viewType,
+          new PnmProvider(context),
+          {
+            supportsMultipleEditorsPerDocument: false,
+            webviewOptions: {
+              retainContextWhenHidden: true,
+            },
+          }
+        );
+      }
+    
+      constructor(private readonly _context: vscode.ExtensionContext) {}
+
+    async openCustomDocument(
         uri: vscode.Uri, 
         openContext: vscode.CustomDocumentOpenContext, 
         token: vscode.CancellationToken
-    ): PnmPreviewer | Thenable<PnmDocument> 
+    ): Promise<PnmDocument> 
     {
-        throw new Error('Method not implemented.');
+        const document = await PnmDocument.create(uri);
+        return document;
     }
+
     resolveCustomEditor(
         document: PnmDocument, 
         webviewPanel: vscode.WebviewPanel, 
         token: vscode.CancellationToken
-    ): void | Thenable<void> 
+    )
     {
-        throw new Error('Method not implemented.');
+        webviewPanel.webview.options = {
+            enableScripts: true,
+        };
+        let doc = document.getParsedImage;
+        webviewPanel.webview.html = generateHTMLCanvas(
+            JSON.stringify(doc),
+            doc.width || 0,
+            doc.height || 0
+        );
     }
 
 }
@@ -55,9 +84,7 @@ class PnmDocument
     }
 
     private parse() {
-        let currentByte = 0,
-            len = this._image.length,
-            l = 0;
+        let currentByte = 0;
         let magic = String.fromCharCode(this._image[currentByte]);
         currentByte += 1;
         let number = String.fromCharCode(this._image[currentByte]);
@@ -107,7 +134,17 @@ class PnmDocument
         let maxVal = Number.parseInt(maxValString);
 
         let colorData: { r: number; g: number; b: number }[][] = [];
-        const totalPixels = width * height;
+        for (let x = 0; x < width; x++) {
+            colorData[x] = [];
+            for (let y = 0; y < height; y++) {
+                colorData[x][y] = {
+                    r: 0,
+                    g: 0,
+                    b: 0
+                };
+            }
+        }
+        
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 let r = this._image[currentByte];
