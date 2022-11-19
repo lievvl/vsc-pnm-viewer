@@ -10,10 +10,22 @@
     "Other"
   ],
   "activationEvents": [
+    "onCustomEditor:vsc-pnm-viewer.pnm-preview",
     "onCommand:vsc-pnm-viewer.helloWorld"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+			{
+				"viewType": "vsc-pnm-viewer.pnm-preview",
+				"displayName": "PNM preview",
+				"selector": [
+					{
+						"filenamePattern": "*.pnm"
+					}
+				]
+			}
+    ],
     "commands": [
       {
         "command": "vsc-pnm-viewer.helloWorld",
